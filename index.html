@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ตรวจสอบพื้นที่ให้บริการ ทรูออนไลน์ (Official)</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <style>
+        :root {
+            /* โทนสีทางการของ True */
+            --true-red: #ED1C24; 
+            --true-red-hover: #C9161E;
+            --true-dark: #1A1A1A;
+            --true-gray-bg: #F4F5F8;
+            --true-block-bg: #F9FAFB;
+            --true-border: #E5E7EB;
+            --true-text-main: #333333;
+            --true-text-muted: #6B7280;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body { 
+            font-family: 'Noto Sans Thai', 'Helvetica Neue', Arial, sans-serif; 
+            margin: 0; 
+            padding: 0; 
+            background-color: var(--true-gray-bg); 
+            color: var(--true-text-main); 
+            display: flex; 
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* Navbar สไตล์ Corporate */
+        .navbar {
+            background-color: #ffffff; 
+            padding: 12px 24px;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+            display: flex; 
+            align-items: center; 
+            justify-content: flex-start;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .navbar img { 
+            height: 40px; 
+            object-fit: contain; 
+        }
+
+        .main-content {
+            flex: 1; 
+            display: flex; 
+            justify-content: center; 
+            align-items: flex-start; 
+            padding: 40px 20px;
+        }
+
+        /* Container หลัก */
+        .container { 
+            width: 100%; 
+            max-width: 680px; 
+            background: #ffffff; 
+            padding: 40px; 
+            border-radius: 16px; 
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04); 
+            border: 1px solid var(--true-border);
+        }
+
+        /* การจัดบล็อกแบ่งส่วนชัดเจน (Clear Block Separation) */
+        .info-block {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        h2 { 
+            font-size: 26px; 
+            font-weight: 700; 
+            color: var(--true-dark); 
+            margin: 0 0 10px 0; 
+        }
+        
+        p.desc { 
+            color: var(--true-text-muted); 
+            font-size: 15px; 
+            margin: 0; 
+            line-height: 1.6; 
+        }
+
+        /* บล็อกพื้นที่แผนที่ */
+        .map-block {
+            background-color: var(--true-block-bg);
+            border: 1px solid var(--true-border);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 24px;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.02);
+            position: relative; /* สำคัญ: เพื่อให้กล่องค้นหาลอยอยู่บนแผนที่ได้ */
+        }
+
+        #map { 
+            width: 100%; 
+            height: 450px; 
+            border-radius: 8px; 
+            border: 1px solid var(--true-border); 
+            z-index: 1;
+        }
+
+        /* บล็อกฟอร์มกรอกข้อมูลและปุ่มดำเนินการ */
+        .form-block {
+            background-color: var(--true-block-bg);
+            border: 1px solid var(--true-border);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.01);
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+            text-align: left;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 8px;
+            border: 1px solid #D1D5DB;
+            font-size: 15px;
+            font-family: inherit;
+            transition: all 0.2s ease;
+            outline: none;
+            color: var(--true-text-main);
+            background-color: #ffffff;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--true-red);
+            box-shadow: 0 0 0 3px rgba(237, 28, 36, 0.1);
+        }
+
+        /* ปุ่ม Submit */
+        .btn-submit { 
+            display: block; 
+            width: 100%; 
+            padding: 16px; 
+            background-color: var(--true-red); 
+            color: #ffffff; 
+            border: none; 
+            border-radius: 8px; 
+            font-size: 16px; 
+            font-weight: 600; 
+            font-family: inherit;
+            cursor: pointer; 
+            transition: all 0.2s ease; 
+            box-shadow: 0 4px 12px rgba(237, 28, 36, 0.15);
+        }
+        
+        .btn-submit:hover:not(:disabled) { 
+            background-color: var(--true-red-hover); 
+            box-shadow: 0 6px 16px rgba(201, 22, 30, 0.25);
+        }
+        
+        .btn-submit:disabled { 
+            background-color: #E5E7EB; 
+            color: #9CA3AF;
+            cursor: not-allowed; 
+            box-shadow: none;
+        }
+
+        /* --- กล่องค้นหาบนแผนที่ --- */
+        .search-container {
+            position: absolute;
+            top: 24px;
+            left: 65px; /* หลบปุ่มซูมของ Leaflet (+/-) */
+            right: 24px;
+            z-index: 1000; /* ให้อยู่เหนือแผนที่ */
+            max-width: 380px; 
+        }
+
+        .search-input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        .search-input-wrapper input {
+            width: 100%;
+            padding: 12px 16px 12px 42px; /* เผื่อที่ด้านซ้ายให้ไอคอน */
+            border: none;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 15px;
+            outline: none;
+            color: var(--true-text-main);
+        }
+
+        .search-input-wrapper input:focus {
+            box-shadow: 0 0 0 2px var(--true-red);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 14px;
+            width: 20px;
+            height: 20px;
+            fill: #6B7280;
+        }
+
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+            margin-top: 8px;
+            max-height: 260px;
+            overflow-y: auto;
+            display: none; /* ซ่อนไว้ก่อน จะโชว์เมื่อมีผลลัพธ์ */
+        }
+
+        .search-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--true-border);
+            font-size: 14px;
+            color: var(--true-text-main);
+            line-height: 1.5;
+        }
+
+        .search-item:last-child {
+            border-bottom: none;
+        }
+
+        .search-item:hover {
+            background-color: var(--true-gray-bg);
+        }
+
+        /* รองรับทุกสเกลหน้าจอ (Responsive Web Design) */
+        @media (max-width: 768px) {
+            .container {
+                padding: 32px 24px;
+            }
+            #map {
+                height: 380px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .navbar {
+                padding: 10px 16px;
+            }
+            .navbar img {
+                height: 32px;
+            }
+            .main-content {
+                padding: 16px 12px;
+            }
+            .container {
+                padding: 24px 16px;
+                border-radius: 12px;
+            }
+            h2 {
+                font-size: 22px;
+            }
+            p.desc {
+                font-size: 14px;
+            }
+            .info-block {
+                margin-bottom: 20px;
+            }
+            .map-block {
+                padding: 8px;
+                margin-bottom: 16px;
+                border-radius: 10px;
+            }
+            #map {
+                height: 300px;
+            }
+            .form-block {
+                padding: 16px;
+                border-radius: 10px;
+            }
+            input[type="text"] {
+                padding: 12px 14px;
+                font-size: 14px;
+            }
+            .btn-submit {
+                padding: 14px;
+                font-size: 15px;
+            }
+            .footer {
+                padding: 16px;
+                font-size: 11px;
+            }
+            .modal-content {
+                padding: 28px 20px;
+            }
+            .modal h3 {
+                font-size: 19px;
+            }
+            .search-container {
+                left: 60px;
+                top: 16px;
+                right: 16px;
+            }
+            .search-input-wrapper input {
+                padding: 10px 12px 10px 38px;
+                font-size: 14px;
+            }
+        }
+
+        /* ป๊อปอัปแจ้งเตือนระบบ */
+        .modal { 
+            display: none; 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            background: rgba(0,0,0,0.6); 
+            justify-content: center; 
+            align-items: center; 
+            padding: 20px;
+            z-index: 9999; 
+            backdrop-filter: blur(4px);
+        }
+        
+        .modal-content { 
+            background: #ffffff; 
+            padding: 40px; 
+            border-radius: 16px; 
+            text-align: center; 
+            max-width: 480px; 
+            width: 100%;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2); 
+            border-top: 6px solid var(--true-red);
+        }
+        
+        .modal-logo-container {
+            width: auto; 
+            height: 40px; 
+            margin: 0 auto 20px auto;
+            display: flex; 
+            justify-content: center; 
+            align-items: center;
+        }
+        .modal-logo-container img {
+            height: 100%; 
+            object-fit: contain;
+        }
+
+        .modal h3 { 
+            font-size: 22px; 
+            margin: 0 0 12px 0; 
+            color: var(--true-dark); 
+            font-weight: 700; 
+        }
+        
+        .modal p { 
+            color: var(--true-text-muted); 
+            font-size: 15px; 
+            line-height: 1.6; 
+            margin: 0 0 28px 0; 
+            text-align: center; 
+        }
+        
+        .btn-modal-close {
+            display: block; 
+            width: 100%; 
+            padding: 14px;
+            background-color: var(--true-red); 
+            color: #ffffff; 
+            border: none;
+            border-radius: 8px; 
+            font-size: 16px; 
+            font-weight: 600; 
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-modal-close:hover { 
+            background-color: var(--true-red-hover); 
+        }
+
+        .footer { 
+            text-align: center; 
+            padding: 24px; 
+            font-size: 13px; 
+            color: var(--true-text-muted); 
+            background-color: #ffffff; 
+            border-top: 1px solid var(--true-border); 
+        }
+    </style>
+</head>
+<body>
+
+    <div class="navbar">
+        <img src="logo.png" alt="True Online Logo">
+    </div>
+
+    <div class="main-content">
+        <div class="container">
+            <div class="info-block">
+                <h2>เช็คพื้นที่อินเทอร์เน็ต True บ้านคุณ</h2>
+                <p class="desc">กรุณาค้นหาสถานที่ หรือเลื่อนแผนที่แล้วจิ้ม/ปักหมุดตรงตำแหน่งบ้านของคุณ จากนั้นกดปุ่มด้านล่างเพื่อส่งข้อมูล</p>
+            </div>
+            
+            <div class="map-block">
+                <div class="search-container">
+                    <div class="search-input-wrapper">
+                        <svg class="search-icon" viewBox="0 0 24 24">
+                            <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"></path>
+                        </svg>
+                        <input type="text" id="mapSearch" placeholder="ค้นหาสถานที่, ถนน, ตำบล, จังหวัด..." autocomplete="off">
+                    </div>
+                    <div class="search-results" id="searchResults"></div>
+                </div>
+
+                <div id="map"></div>
+            </div>
+            
+            <div class="form-block">
+                <div class="form-group">
+                    <input type="text" id="nameInput" placeholder="ระบุชื่อที่ใช้ติดต่อทางโซเชียล" />
+                </div>
+
+                <button class="btn-submit" id="submitBtn" onclick="sendLocation()">กดเพื่อเช็คพิกัดพื้นที่ของคุณ</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        © 2026 True Corporation Public Company Limited. All rights reserved.
+    </div>
+
+    <div id="resultModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-logo-container">
+                <img src="logo.png" alt="True Logo">
+            </div>
+            <h3>บันทึกข้อมูลตำแหน่งสำเร็จ</h3>
+            <p id="modalName" style="font-weight:600; font-size:16px; margin:4px 0 16px 0; color:#000000; text-align:center;"></p>            
+            <p>
+                ระบบทำการบันทึกพิกัดสถานที่ติดตั้งเข้าสู่ฐานข้อมูลกลางโครงข่ายหลักเรียบร้อยแล้ว เจ้าหน้าที่จะดำเนินการตรวจสอบระยะสายที่ใกล้ที่สุด และติดต่อกลับเพื่อแจ้งผลการประเมินความพร้อมในการติดตั้งโดยเร็วที่สุด
+            </p>
+            <button class="btn-modal-close" onclick="location.reload()">ตกลง</button>
+        </div>
+    </div>
+
+<script>
+    let map;
+    let marker;
+    let powerLayer; 
+    let nameInput;
+    
+    let currentLat = 13.7563;
+    let currentLon = 100.5018;
+
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxCkgSACd_GltFG_Lelpj9QF6DBb2aynFF1xQ9tibr6MY0fr3NLkfvCgaeQ-MqdSja-/exec"; 
+
+window.onload = function() {
+        // 1. สร้าง Layer แผนที่แบบถนนปกติ (OSM)
+        const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 20,
+            maxNativeZoom: 19, 
+            attribution: '© OpenStreetMap contributors'
+        });
+
+        // 2. สร้าง Layer แผนที่ดาวเทียมแบบมีชื่อถนน (Google Hybrid) จะเห็นภาพจริงชัดเจนกว่า
+        const googleHybridLayer = L.tileLayer('https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+            maxZoom: 20,
+            attribution: '© Google'
+        });
+
+        // 3. เริ่มต้นแผนที่ (เซ็ตให้ใช้ดาวเทียมเป็นค่าเริ่มต้น)
+        map = L.map('map', { 
+            zoomControl: true,
+            maxZoom: 20,
+            layers: [googleHybridLayer] // เปลี่ยนเป็น OSM ได้ถ้าอยากให้เริ่มต้นเป็นแผนที่ปกติ
+        }).setView([currentLat, currentLon], 17);
+
+        // 4. เพิ่มปุ่มสลับแผนที่ที่มุมขวาบน
+        const baseMaps = {
+            "แผนที่ดาวเทียม": googleHybridLayer,
+            "แผนที่ถนนปกติ": osmLayer
+        };
+        L.control.layers(baseMaps).addTo(map);
+
+        powerLayer = L.layerGroup().addTo(map);
+        marker = L.marker([currentLat, currentLon], { draggable: true }).addTo(map);        
+        fetchRealPowerLines(currentLat, currentLon);
+
+        map.on('moveend', function() {
+            let center = map.getCenter();
+            fetchRealPowerLines(center.lat, center.lng);
+        });
+
+        map.on('click', function(e) {
+            currentLat = e.latlng.lat;
+            currentLon = e.latlng.lng;
+            marker.setLatLng([currentLat, currentLon]);
+        });
+
+        marker.on('dragend', function(e) {
+            const position = marker.getLatLng();
+            currentLat = position.lat;
+            currentLon = position.lng;
+        });
+
+        nameInput = document.getElementById('nameInput');
+        const submitBtn = document.getElementById('submitBtn');
+        // initialize submit button disabled state based on name input
+        submitBtn.disabled = !(nameInput && nameInput.value && nameInput.value.trim().length > 0);
+
+        if (nameInput) {
+            nameInput.addEventListener('input', function() {
+                submitBtn.disabled = !(nameInput.value && nameInput.value.trim().length > 0);
+            });
+        }
+    };
+
+    async function fetchRealPowerLines(lat, lon) {
+        const offset = 0.003; 
+        const south = lat - offset;
+        const west = lon - offset;
+        const north = lat + offset;
+        const east = lon + offset;
+
+        const query = `[out:json][timeout:15];
+            (
+              way["power"="minor_line"](${south},${west},${north},${east});
+              way["power"="line"](${south},${west},${north},${east});
+              node["power"="pole"](${south},${west},${north},${east});
+            );
+            out body; >; out skel qt;`;
+
+        const url = "https://overpass-api.de/api/interpreter?data=" + encodeURIComponent(query);
+
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+            
+            powerLayer.clearLayers();
+
+            const nodes = {};
+            data.elements.forEach(el => {
+                if (el.type === 'node') {
+                    nodes[el.id] = [el.lat, el.lon];
+                    if (el.tags && el.tags.power === 'pole') {
+                        L.circleMarker([el.lat, el.lon], {
+                            radius: 3, fillColor: '#555555', color: '#ffffff', weight: 1, fillOpacity: 1
+                        }).addTo(powerLayer);
+                    }
+                }
+            });
+
+            data.elements.forEach(el => {
+                if (el.type === 'way' && el.nodes) {
+                    const coordinates = el.nodes.map(nodeId => nodes[nodeId]).filter(coord => coord !== undefined);
+                    if (coordinates.length > 0) {
+                        L.polyline(coordinates, {
+                            color: '#2b2b2b', 
+                            weight: 2,
+                            opacity: 0.8
+                        }).addTo(powerLayer);
+                    }
+                }
+            });
+
+        } catch (error) {
+            console.error("Error fetching power lines:", error);
+        }
+    }
+
+    async function sendLocation() {
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.disabled = true;
+        submitBtn.innerText = "กำลังส่งข้อมูลพิกัด...";
+
+        const latLng = `${currentLat},${currentLon}`;
+        const name = (nameInput && nameInput.value) ? nameInput.value.trim() : '';
+
+        if (!name) {
+            alert('กรุณากรอกชื่อก่อนส่งข้อมูล');
+            submitBtn.disabled = false;
+            submitBtn.innerText = "กดเพื่อเช็คพิกัดพื้นที่ของคุณ";
+            return;
+        }
+
+        try {
+            await fetch(WEB_APP_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ latLng: latLng, name: name })
+            });
+
+            setTimeout(() => {
+                const modalName = document.getElementById('modalName');
+                if (modalName) modalName.innerText = name;
+                document.getElementById('resultModal').style.display = 'flex';
+            }, 800);
+
+        } catch (error) {
+            const modalName = document.getElementById('modalName');
+            if (modalName) modalName.innerText = name;
+            document.getElementById('resultModal').style.display = 'flex';
+        }
+    }
+
+    // --- ระบบค้นหาสถานที่ (Geocoding by OpenStreetMap) ---
+    const searchInputElem = document.getElementById('mapSearch');
+    const searchResultsElem = document.getElementById('searchResults');
+    let searchTimeout;
+
+    searchInputElem.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        const query = this.value.trim();
+        
+        // ถ้าพิมพ์ไม่ถึง 2 ตัวอักษร ให้ซ่อนกล่องผลลัพธ์
+        if (query.length < 2) {
+            searchResultsElem.style.display = 'none';
+            return;
+        }
+
+        // หน่วงเวลา 500ms ป้องกันการยิง API ถี่เกินไป
+        searchTimeout = setTimeout(async () => {
+            try {
+                // ยิง API ไปที่ Nominatim โดยบังคับหาเฉพาะในประเทศไทย (countrycodes=th)
+                const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=th&limit=5`);
+                const data = await response.json();
+                
+                searchResultsElem.innerHTML = '';
+                
+                if (data.length > 0) {
+                    data.forEach(place => {
+                        const div = document.createElement('div');
+                        div.className = 'search-item';
+                        div.innerText = place.display_name;
+                        
+                        // เมื่อคลิกเลือกสถานที่
+                        div.onclick = () => {
+                            const lat = parseFloat(place.lat);
+                            const lon = parseFloat(place.lon);
+                            
+                            // 1. เลื่อนแผนที่ไปจุดนั้น
+                            map.setView([lat, lon], 17);
+                            // 2. ย้ายหมุด
+                            marker.setLatLng([lat, lon]);
+                            
+                            // 3. อัปเดตพิกัดปัจจุบัน
+                            currentLat = lat;
+                            currentLon = lon;
+                            
+                            // 4. เอาชื่อมาใส่ในช่องค้นหาและซ่อนผลลัพธ์
+                            searchInputElem.value = place.display_name;
+                            searchResultsElem.style.display = 'none';
+                            
+                            // 5. อัปเดตเสาไฟฟ้าใหม่ในพื้นที่นั้น
+                            fetchRealPowerLines(lat, lon);
+                        };
+                        searchResultsElem.appendChild(div);
+                    });
+                    searchResultsElem.style.display = 'block';
+                } else {
+                    searchResultsElem.style.display = 'none';
+                }
+            } catch (error) {
+                console.error("Error fetching location search:", error);
+            }
+        }, 500);
+    });
+
+    // คลิกพื้นที่อื่นนอกกล่องค้นหาให้ซ่อน Dropdown
+    document.addEventListener('click', function(e) {
+        if (!searchInputElem.contains(e.target) && !searchResultsElem.contains(e.target)) {
+            searchResultsElem.style.display = 'none';
+        }
+    });
+</script>
+
+</body>
+</html>
